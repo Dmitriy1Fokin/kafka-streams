@@ -15,4 +15,5 @@ public class Constants {
     private String applicationId;
     private String topicNameObject;
     private String topicNameStreamTypeOne;
+    private String topicNameStreamTable;
 }

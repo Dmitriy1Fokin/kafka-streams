@@ -9,6 +9,8 @@ import org.apache.kafka.streams.StreamsBuilder;
 import org.apache.kafka.streams.StreamsConfig;
 import org.apache.kafka.streams.kstream.Consumed;
 import org.apache.kafka.streams.kstream.KStream;
+import org.apache.kafka.streams.kstream.KTable;
+import org.apache.kafka.streams.kstream.Printed;
 import org.apache.kafka.streams.kstream.Produced;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -60,10 +62,18 @@ public class KafkaStreamsConfig {
                 .mapValues(this::getMessageFromString)
                 .filter((key, value) -> value.getTypeEnum() == TypeEnum.TYPE_1);
         messageKStream.to(constants.getTopicNameStreamTypeOne(), Produced.with(Serdes.String(), messageSerde()));
+
+        KTable<String, Long> countOfTypeTable = stream
+                .mapValues(value -> getMessageFromString(value).getTypeEnum().name())
+                .groupBy((key, value) -> value)
+                .count();
+        countOfTypeTable.toStream().print(Printed.<String, Long>toSysOut().withLabel("Table \"count of type\""));
+        countOfTypeTable.toStream().to(constants.getTopicNameStreamTable(), Produced.with(Serdes.String(), Serdes.Long()));
+
         return messageKStream;
     }
 
-    Message getMessageFromString(String messageString) {
+    private Message getMessageFromString(String messageString) {
         Message message = null;
         try {
             message = objectMapper().readValue(messageString, Message.class);
